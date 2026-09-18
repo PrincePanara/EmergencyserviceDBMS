@@ -91,8 +91,8 @@ export function ReportEmergency() {
         longitude: String(position.longitude)
       }));
       toast.success('Location captured', 'Coordinates attached to this report.');
-    } catch {
-      toast.error('Unable to get location', 'Enter the address manually so teams can reach you.');
+    } catch (err) {
+      toast.error('Unable to get location', err instanceof Error ? err.message : 'Enter the address manually so teams can reach you.');
     } finally {
       setLocating(false);
     }

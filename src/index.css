@@ -1,0 +1,88 @@
+/* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORTS — DO NOT DELETE THIS COMMENT */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* CRITICAL: THE FOLLOWING TAILWIND IMPORTS MUST NEVER BE DELETED OR REORDERED — DO NOT DELETE THIS COMMENT */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
+
+:root {
+  --ers-bg: 248 250 252;
+  --ers-surface: 255 255 255;
+  --ers-surface-2: 241 245 249;
+  --ers-line: 226 232 240;
+  --ers-ink: 17 24 39;
+  --ers-muted: 100 116 139;
+  --ers-primary: 220 38 38;
+  --ers-primary-dark: 185 28 28;
+  --ers-primary-deep: 153 27 27;
+  --ers-primary-light: 254 242 242;
+  --ers-success: 22 163 74;
+  --ers-success-light: 240 253 244;
+  --ers-warning: 245 158 11;
+  --ers-warning-light: 255 251 235;
+  --ers-info: 37 99 235;
+  --ers-info-light: 239 246 255;
+  --ers-violet: 109 40 217;
+  --ers-violet-light: 245 243 255;
+}
+.dark {
+  --ers-bg: 9 13 22;
+  --ers-surface: 17 24 39;
+  --ers-surface-2: 31 41 55;
+  --ers-line: 39 49 66;
+  --ers-ink: 241 245 249;
+  --ers-muted: 148 163 184;
+  --ers-primary: 239 68 68;
+  --ers-primary-dark: 220 38 38;
+  --ers-primary-deep: 185 28 28;
+  --ers-primary-light: 46 17 19;
+  --ers-success: 34 197 94;
+  --ers-success-light: 12 32 20;
+  --ers-warning: 245 158 11;
+  --ers-warning-light: 38 28 10;
+  --ers-info: 59 130 246;
+  --ers-info-light: 14 26 46;
+  --ers-violet: 167 139 250;
+  --ers-violet-light: 26 22 46;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background-color: rgb(var(--ers-bg));
+  color: rgb(var(--ers-ink));
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+*:focus-visible {
+  outline: 2px solid rgb(var(--ers-primary));
+  outline-offset: 2px;
+}
+::selection {
+  background-color: rgb(var(--ers-primary) / 0.18);
+}
+.ers-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.ers-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--ers-muted) / 0.35);
+  border-radius: 999px;
+}
+.ers-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

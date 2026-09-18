@@ -8,6 +8,7 @@ import type {
   LocationRecord,
   Priority
 } from '../types';
+import { notifyChange } from '../data/db';
 import { locationService } from './locationService';
 import { notificationService } from './notificationService';
 import { responseService } from './responseService';
@@ -113,15 +114,19 @@ export const incidentService = {
       kind: incident.priority === 'Critical' ? 'critical' : 'info'
     });
     
+    notifyChange();
     return incident;
   },
 
   async updateStatus(id: string, status: IncidentStatus, note?: string): Promise<Incident> {
     const incident = await this.get(id);
     const updatedData: Partial<Incident> = {
-      status,
-      closedAt: status === 'Closed' ? new Date().toISOString() : incident.closedAt
+      status
     };
+    
+    if (status === 'Closed') {
+      updatedData.closedAt = new Date().toISOString();
+    }
 
     await updateDoc(doc(firestore, INCIDENTS_COL, incident.id), updatedData);
 
@@ -147,6 +152,7 @@ export const incidentService = {
       kind: status === 'Resolved' || status === 'Closed' ? 'success' : 'info'
     });
     
+    notifyChange();
     return { ...incident, ...updatedData } as Incident;
   },
 
@@ -177,6 +183,7 @@ export const incidentService = {
       message: `A team has been assigned to your emergency ${incident.code}.`,
       kind: 'critical'
     });
+    notifyChange();
   },
 
   async assignVehicle(id: string, vehicleId: string): Promise<void> {
@@ -190,6 +197,7 @@ export const incidentService = {
       message: `A vehicle is responding to ${incident.code}.`,
       kind: 'info'
     });
+    notifyChange();
   },
 
   async cancel(id: string, reason: string): Promise<void> {

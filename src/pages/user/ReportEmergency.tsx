@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertTriangleIcon,
@@ -58,17 +58,18 @@ export function ReportEmergency() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [resolvingCoords, setResolvingCoords] = useState(false);
   const [created, setCreated] = useState<Incident | null>(null);
 
   const set = (key: keyof FormState, value: string) =>
-  setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => ({ ...prev, [key]: value }));
 
   const validate = (): boolean => {
     const next: Partial<Record<keyof FormState, string>> = {};
     if (!form.type) next.type = 'Select the type of emergency.';
     if (!form.priority) next.priority = 'Select a priority.';
     if (form.description.trim().length < 15)
-    next.description = 'Describe the situation in at least 15 characters.';
+      next.description = 'Describe the situation in at least 15 characters.';
     if (!form.address.trim()) next.address = 'Address is required.';
     if (!form.city.trim()) next.city = 'City is required.';
     if (!form.state.trim()) next.state = 'State is required.';
@@ -77,26 +78,76 @@ export function ReportEmergency() {
     return Object.keys(next).length === 0;
   };
 
-  const detectLocation = async () => {
+  const detectLocation = async (isAuto = false) => {
     setLocating(true);
     try {
-      const position = await locationService.detectCurrent();
+      const position = await locationService.detectCurrent({ allowIpFallback: true });
       setForm((prev) => ({
         ...prev,
         address: position.address,
-        city: position.city,
-        state: position.state,
-        pincode: position.pincode,
+        city: position.city || prev.city || 'Rajkot',
+        state: position.state || prev.state || 'Gujarat',
+        pincode: position.pincode || prev.pincode || '',
         latitude: String(position.latitude),
         longitude: String(position.longitude)
       }));
-      toast.success('Location captured', 'Coordinates attached to this report.');
+      setErrors((prev) => ({
+        ...prev,
+        address: undefined,
+        city: undefined,
+        state: undefined,
+        pincode: undefined
+      }));
+      if (isAuto) {
+        toast.success('Location auto-detected', `${position.address}, ${position.city}`);
+      } else {
+        toast.success('Location captured', `${position.address}, ${position.city}`);
+      }
     } catch (err) {
-      toast.error('Unable to get location', err instanceof Error ? err.message : 'Enter the address manually so teams can reach you.');
+      if (!isAuto) {
+        toast.error('Unable to get location', err instanceof Error ? err.message : 'Enter the address manually so teams can reach you.');
+      }
     } finally {
       setLocating(false);
     }
   };
+
+  const fetchFromCoordinates = async () => {
+    const lat = parseFloat(form.latitude);
+    const lon = parseFloat(form.longitude);
+    if (isNaN(lat) || isNaN(lon)) {
+      toast.warning('Invalid coordinates', 'Please enter valid Latitude and Longitude values first.');
+      return;
+    }
+    setResolvingCoords(true);
+    try {
+      const position = await locationService.reverseGeocode(lat, lon);
+      setForm((prev) => ({
+        ...prev,
+        address: position.address || prev.address,
+        city: position.city || prev.city,
+        state: position.state || prev.state,
+        pincode: position.pincode || prev.pincode
+      }));
+      setErrors((prev) => ({
+        ...prev,
+        address: undefined,
+        city: undefined,
+        state: undefined,
+        pincode: undefined
+      }));
+      toast.success('Address updated', position.address);
+    } catch (err) {
+      toast.error('Unable to fetch address', err instanceof Error ? err.message : undefined);
+    } finally {
+      setResolvingCoords(false);
+    }
+  };
+
+  // Auto-fetch location when page opens
+  useEffect(() => {
+    detectLocation(true);
+  }, []);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,11 +298,18 @@ export function ReportEmergency() {
             title="Location"
             icon={CrosshairIcon}
             actions={
-            <Button size="sm" icon={CrosshairIcon} loading={locating} onClick={detectLocation}>
+              <Button
+                size="sm"
+                variant="primary"
+                icon={CrosshairIcon}
+                loading={locating}
+                onClick={() => detectLocation(false)}
+              >
                 GET MY LOCATION
               </Button>
-            } />
-          
+            }
+          />
+
           <div className="space-y-4 p-4 sm:p-5">
             <Input
               label="Address"
@@ -259,8 +317,9 @@ export function ReportEmergency() {
               value={form.address}
               error={errors.address}
               placeholder="Street, landmark, building name"
-              onChange={(e) => set('address', e.target.value)} />
-            
+              onChange={(e) => set('address', e.target.value)}
+            />
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Input label="City" required value={form.city} error={errors.city} onChange={(e) => set('city', e.target.value)} />
               <Input label="State" required value={form.state} error={errors.state} onChange={(e) => set('state', e.target.value)} />
@@ -270,33 +329,52 @@ export function ReportEmergency() {
                 value={form.pincode}
                 error={errors.pincode}
                 placeholder="360005"
-                onChange={(e) => set('pincode', e.target.value)} />
-              
+                onChange={(e) => set('pincode', e.target.value)}
+              />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Latitude"
                 value={form.latitude}
                 placeholder="22.2823"
-                onChange={(e) => set('latitude', e.target.value)} />
-              
+                onChange={(e) => set('latitude', e.target.value)}
+              />
+
               <Input
                 label="Longitude"
                 value={form.longitude}
                 placeholder="70.7688"
-                onChange={(e) => set('longitude', e.target.value)} />
-              
+                onChange={(e) => set('longitude', e.target.value)}
+              />
             </div>
 
-            {form.address &&
-            <MapPreview
-              address={form.address}
-              city={form.city}
-              latitude={Number(form.latitude) || undefined}
-              longitude={Number(form.longitude) || undefined}
-              height={160} />
+            {form.latitude && form.longitude && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-success/30 bg-success-light/30 px-3 py-2 text-xs">
+                <div className="flex items-center gap-1.5 font-medium text-success-dark">
+                  <CheckCircle2Icon className="h-4 w-4 shrink-0 text-success" />
+                  <span>GPS Coordinates Active: {form.latitude}, {form.longitude}</span>
+                </div>
+                <button
+                  type="button"
+                  disabled={resolvingCoords}
+                  onClick={fetchFromCoordinates}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  {resolvingCoords ? 'Fetching address...' : 'Auto-fetch address from coordinates'}
+                </button>
+              </div>
+            )}
 
-            }
+            {(form.address || (form.latitude && form.longitude)) && (
+              <MapPreview
+                address={form.address || 'Detected Location'}
+                city={form.city}
+                latitude={Number(form.latitude) || undefined}
+                longitude={Number(form.longitude) || undefined}
+                height={160}
+              />
+            )}
           </div>
         </Card>
 

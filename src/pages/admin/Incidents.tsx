@@ -119,8 +119,9 @@ export function AdminIncidents() {
       toast.success('Incident status updated successfully.');
       setStatusTarget(null);
       setNote('');
-    } catch {
-      toast.error('Unable to update incident.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Unable to update incident.', err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
